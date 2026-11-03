@@ -1,0 +1,18 @@
+[1mdiff --git a/electrical.py b/electrical.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..22ad32e[m
+[1m--- /dev/null[m
+[1m+++ b/electrical.py[m
+[36m@@ -0,0 +1,8 @@[m
+[32m+[m[32mdef analyze_dc(voltage_v, resistance_ohm):[m
+[32m+[m[32m    current_a = voltage_v / resistance_ohm[m
+[32m+[m[32m    power_w = voltage_v * current_a[m
+[32m+[m[32m    return {"current_a": current_a, "power_w": power_w}[m
+[32m+[m
+[32m+[m
+[32m+[m[32mif __name__ == "__main__":[m
+[32m+[m[32m    print(analyze_dc(12, 6))[m
+\ No newline at end of file[m
+[1mdiff --git a/test_electrical.py b/test_electrical.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..e69de29[m
