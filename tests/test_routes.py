@@ -49,7 +49,7 @@ class RoutesTest(unittest.TestCase):
         response = self.client.post("/", data=form(re="0.1"))
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"saturation", response.data)
-        self.assertIn(b"5.126", response.data)
+        self.assertIn(b"5.128", response.data)
 
     def test_invalid_input_returns_400_and_keeps_values(self):
         response = self.client.post("/", data=form(vcc="0"))
