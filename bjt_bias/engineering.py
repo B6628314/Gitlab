@@ -171,3 +171,44 @@ def analyze(inputs: BiasInputs) -> BiasResult:
         rth_ohm=rth,
         warnings=tuple(warnings),
     )
+
+
+@dataclass(frozen=True)
+class Comparison:
+    approx_ib_a: float
+    approx_ic_a: float
+    approx_vce_v: float
+    delta_ic_pct: float
+    delta_vce_pct: float
+    stiffness_ratio: float
+    stiff: bool
+
+
+def compare(inputs: BiasInputs, result: BiasResult) -> "Comparison | None":
+    """Compare the exact active-region solution with the stiff-divider approximation.
+
+    Returns None outside the active region, where the approximation is invalid.
+    """
+    if result.region is not Region.ACTIVE:
+        return None
+
+    vb = result.vth_v
+    ve = vb - inputs.vbe
+    ie = ve / inputs.re
+    ic = ie
+    ib = ic / inputs.beta
+    vce = inputs.vcc - ic * inputs.rc - ie * inputs.re
+
+    delta_ic_pct = abs(ic - result.ic_a) / result.ic_a * 100.0
+    delta_vce_pct = abs(vce - result.vce_v) / result.vce_v * 100.0
+    stiffness_ratio = inputs.beta * inputs.re / result.rth_ohm
+
+    return Comparison(
+        approx_ib_a=ib,
+        approx_ic_a=ic,
+        approx_vce_v=vce,
+        delta_ic_pct=delta_ic_pct,
+        delta_vce_pct=delta_vce_pct,
+        stiffness_ratio=stiffness_ratio,
+        stiff=stiffness_ratio >= STIFF_FACTOR,
+    )

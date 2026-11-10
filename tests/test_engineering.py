@@ -1,6 +1,8 @@
 import unittest
 
-from bjt_bias.engineering import BiasInputs, InputError, Region, analyze, parse_inputs
+from bjt_bias.engineering import (
+    BiasInputs, InputError, Region, analyze, compare, parse_inputs,
+)
 
 
 def valid_form(**overrides):
@@ -142,6 +144,31 @@ class AnalyzeTest(unittest.TestCase):
         self.assertTrue(any("VBE" in w for w in r.warnings))
         self.assertTrue(any("beta" in w for w in r.warnings))
         self.assertTrue(any("VCC" in w for w in r.warnings))
+
+
+class CompareTest(unittest.TestCase):
+    def test_reference_case_comparison(self):
+        inputs = parse_inputs(valid_form())
+        c = compare(inputs, analyze(inputs))
+        self.assertAlmostEqual(c.approx_ic_a, 1.405263e-3, places=8)
+        self.assertAlmostEqual(c.approx_vce_v, 7.503158, places=5)
+        self.assertAlmostEqual(c.approx_ib_a, 9.368421e-6, places=10)
+        self.assertAlmostEqual(c.delta_ic_pct, 6.164, places=2)
+        self.assertAlmostEqual(c.delta_vce_pct, 3.253, places=2)
+        self.assertAlmostEqual(c.stiffness_ratio, 18.191, places=2)
+        self.assertTrue(c.stiff)
+
+    def test_non_stiff_divider_is_flagged(self):
+        inputs = parse_inputs(valid_form(r1="10000", r2="10000", rc="100",
+                                         re="100", beta="20"))
+        c = compare(inputs, analyze(inputs))
+        self.assertFalse(c.stiff)
+        self.assertAlmostEqual(c.stiffness_ratio, 0.4, places=6)
+
+    def test_no_comparison_outside_active_region(self):
+        for form in (valid_form(r2="2200"), valid_form(re="100")):
+            inputs = parse_inputs(form)
+            self.assertIsNone(compare(inputs, analyze(inputs)))
 
 
 if __name__ == "__main__":
