@@ -8,23 +8,40 @@ from .engineering import InputError, analyze, compare, parse_inputs
 
 bp = Blueprint("bias", __name__)
 
+# The form takes kilohms for the four resistors.
+RESISTOR_SCALE = 1000.0
+
+DEFAULTS = {
+    "vcc": "12.0",
+    "r1": "100",
+    "r2": "22",
+    "rc": "2.2",
+    "re": "1.0",
+    "beta": "100",
+    "vbe": "0.70",
+}
+
 
 @bp.get("/")
 def index():
     return render_template(
-        "index.html", form={}, error=None, result=None, comparison=None
+        "index.html",
+        values=DEFAULTS,
+        error=None,
+        result=None,
+        comparison=None,
     )
 
 
 @bp.post("/")
 def analyze_form():
     try:
-        inputs = parse_inputs(request.form)
+        inputs = parse_inputs(request.form, resistor_scale=RESISTOR_SCALE)
     except InputError as exc:
         return (
             render_template(
                 "index.html",
-                form=request.form,
+                values=request.form,
                 error=str(exc),
                 result=None,
                 comparison=None,
@@ -35,7 +52,7 @@ def analyze_form():
     result = analyze(inputs)
     return render_template(
         "index.html",
-        form=request.form,
+        values=request.form,
         error=None,
         result=result,
         comparison=compare(inputs, result),

@@ -45,8 +45,12 @@ class BiasInputs:
     vbe: float
 
 
-def parse_inputs(form: Mapping[str, str]) -> BiasInputs:
-    """Parse and validate the seven form fields into BiasInputs."""
+def parse_inputs(form: Mapping[str, str], resistor_scale: float = 1.0) -> BiasInputs:
+    """Parse and validate the seven form fields into BiasInputs.
+
+    ``resistor_scale`` converts the entered resistance unit to ohms: pass 1000.0
+    when the form takes kilohms.
+    """
     values: dict[str, float] = {}
     for name in FIELDS:
         raw = form.get(name)
@@ -63,6 +67,7 @@ def parse_inputs(form: Mapping[str, str]) -> BiasInputs:
     if values["vcc"] <= 0:
         raise InputError("VCC must be greater than zero.")
     for name in ("r1", "r2", "rc", "re"):
+        values[name] *= resistor_scale
         if values[name] <= 0:
             raise InputError(f"{LABELS[name]} must be greater than zero.")
     if values["beta"] <= 1:

@@ -80,6 +80,15 @@ class ParseInputsTest(unittest.TestCase):
         self.assertAlmostEqual(inputs.beta, 10000.0)
         self.assertAlmostEqual(inputs.vcc, 1000000.0)
 
+    def test_resistor_scale_converts_kilohms_to_ohms(self):
+        inputs = parse_inputs(valid_form(r1="100", r2="22", rc="2.2", re="1.0"),
+                              resistor_scale=1000.0)
+        self.assertAlmostEqual(inputs.r1, 100000.0)
+        self.assertAlmostEqual(inputs.r2, 22000.0)
+        self.assertAlmostEqual(inputs.rc, 2200.0)
+        self.assertAlmostEqual(inputs.re, 1000.0)
+        self.assertAlmostEqual(inputs.vcc, 12.0)
+
 
 class AnalyzeTest(unittest.TestCase):
     def test_reference_case_is_active(self):

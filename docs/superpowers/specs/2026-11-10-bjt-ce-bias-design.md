@@ -245,3 +245,17 @@ module, and hand a result object to the template.
 4. POST the saturation case — page shows IC ≈ 5.130 mA, VCE = 0.2 V, saturated,
    no negative numbers, cross-check panel replaced by the note.
 5. Commit and push to `origin/main`.
+
+## UI revision (2026-11-10, after approval)
+
+The team supplied a mockup after the original design was approved. Changes:
+
+- Three-panel layout: input parameters, circuit schematic, results.
+- Resistances are entered in kilohms; the route scales them to ohms before validation.
+- Inline SVG schematic of the common-emitter stage with live parameter labels.
+- Result set shown as VB, VE, VC, VCE, IB, IC, IE.
+- The region badge becomes a coloured region box with an explanatory line.
+- The exact-vs-approximation cross-check is retained as a full-width strip below the panels.
+- Header carries the lab title and course badge; footer carries the Week 2 goal.
+
+The engineering core is unchanged by this revision.

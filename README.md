@@ -66,7 +66,7 @@ python run.py
 
 Open <http://127.0.0.1:5000>, fill the form, press **Analyze**.
 
-Resistances are entered in ohms: 47 kOhm is `47000`. Results are shown in mA,
+Resistances are entered in kilohms: 47 kOhm is `47`. Results are shown in mA,
 microamps and volts, with 4 significant digits.
 
 ## Tests
@@ -101,8 +101,8 @@ saturation, and a non-stiff divider.
 bjt_bias/
   __init__.py      Flask app factory and the `sig` formatting filter
   engineering.py   pure math: inputs, validation, operating point, cross-check
-  routes.py        GET / (form) and POST / (analyze)
-  templates/       base.html, index.html
+  routes.py        GET / (prefilled form) and POST / (analyze); kOhm to ohm
+  templates/       base.html (header, goal bar), index.html (3 panels + SVG)
   static/          style.css
 tests/             engineering and route tests
 run.py             development server on 127.0.0.1:5000

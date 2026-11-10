@@ -3,19 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BJT Bias Calculator</title>
+  <title>Lab 02: BJT DC Bias Web App</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main>
-    <header>
-      <h1>BJT Common-Emitter DC Bias</h1>
-      <p class="subtitle">Voltage-divider bias &middot; ENG29 2121</p>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="6" y="6" width="12" height="12" rx="2"/>
+          <path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>
+          <rect x="10" y="10" width="4" height="4" rx="1"/>
+        </svg>
+        <div>
+          <h1>Lab 02: BJT DC Bias Web App</h1>
+          <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Voltage Divider Bias)</p>
+        </div>
+      </div>
+      <div class="course-badge">
+        <span class="code-icon">&lt;/&gt;</span>
+        Computer Programming for Electrical Engineers
+      </div>
     </header>
+
     {% block content %}{% endblock %}
-    <footer>
-      <p>VCE(sat) = 0.2 V &middot; stiff-divider criterion: beta &middot; RE &ge; 10 &middot; RTH</p>
+
+    <footer class="goal">
+      <span class="goal-label">
+        <svg class="goal-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
+        </svg>
+        Week 2 Goal
+      </span>
+      <p>
+        Rough target for this lab: build a Flask web app that takes the circuit
+        parameters, computes the BJT DC bias
+        (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
+        I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter
+        amplifier with voltage-divider bias, and displays the results.
+      </p>
     </footer>
-  </main>
+  </div>
 </body>
 </html>

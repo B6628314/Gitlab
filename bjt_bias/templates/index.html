@@ -1,96 +1,220 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form method="post" action="/">
-  <h2>Inputs</h2>
-  <p class="hint">Resistances in ohms (enter 47 k&Omega; as 47000).</p>
+<div class="layout">
+  <section class="panel panel-inputs">
+    <h2 class="panel-title">
+      <span class="panel-icon">&#9881;</span> Input Parameters
+    </h2>
 
-  <div class="fields">
-    <label>VCC (V)<input name="vcc" value="{{ form.get('vcc', '') }}" inputmode="decimal" required></label>
-    <label>R1 (&Omega;)<input name="r1" value="{{ form.get('r1', '') }}" inputmode="decimal" required></label>
-    <label>R2 (&Omega;)<input name="r2" value="{{ form.get('r2', '') }}" inputmode="decimal" required></label>
-    <label>RC (&Omega;)<input name="rc" value="{{ form.get('rc', '') }}" inputmode="decimal" required></label>
-    <label>RE (&Omega;)<input name="re" value="{{ form.get('re', '') }}" inputmode="decimal" required></label>
-    <label>beta<input name="beta" value="{{ form.get('beta', '') }}" inputmode="decimal" required></label>
-    <label>VBE (V)<input name="vbe" value="{{ form.get('vbe', '') }}" inputmode="decimal" required></label>
-  </div>
+    <form method="post" action="/">
+      <label class="field" for="vcc">
+        <span class="field-name">V<sub>CC</sub> <span class="field-desc">(Supply Voltage)</span></span>
+        <span class="control">
+          <input id="vcc" name="vcc" value="{{ values.get('vcc', '') }}" inputmode="decimal" required>
+          <span class="unit">V</span>
+        </span>
+      </label>
 
-  <button type="submit">Analyze</button>
-</form>
+      <label class="field" for="r1">
+        <span class="field-name">R<sub>1</sub> <span class="field-desc">(Upper Divider)</span></span>
+        <span class="control">
+          <input id="r1" name="r1" value="{{ values.get('r1', '') }}" inputmode="decimal" required>
+          <span class="unit">k&Omega;</span>
+        </span>
+      </label>
 
-{% if error %}
-<div class="error" role="alert">{{ error }}</div>
-{% endif %}
+      <label class="field" for="r2">
+        <span class="field-name">R<sub>2</sub> <span class="field-desc">(Lower Divider)</span></span>
+        <span class="control">
+          <input id="r2" name="r2" value="{{ values.get('r2', '') }}" inputmode="decimal" required>
+          <span class="unit">k&Omega;</span>
+        </span>
+      </label>
 
-{% if result %}
-<section class="results">
-  <h2>DC Operating Point</h2>
-  <p class="region region-{{ result.region.value }}">Region: {{ result.region.value }}</p>
+      <label class="field" for="rc">
+        <span class="field-name">R<sub>C</sub> <span class="field-desc">(Collector Resistor)</span></span>
+        <span class="control">
+          <input id="rc" name="rc" value="{{ values.get('rc', '') }}" inputmode="decimal" required>
+          <span class="unit">k&Omega;</span>
+        </span>
+      </label>
 
-  <table>
-    <tbody>
-      <tr><th>IC</th><td>{{ (result.ic_a * 1000) | sig }} mA</td></tr>
-      <tr><th>IB</th><td>{{ (result.ib_a * 1000000) | sig }} &micro;A</td></tr>
-      <tr><th>IE</th><td>{{ (result.ie_a * 1000) | sig }} mA</td></tr>
-      <tr><th>VCE</th><td>{{ result.vce_v | sig }} V</td></tr>
-      <tr><th>VB</th><td>{{ result.vb_v | sig }} V</td></tr>
-      <tr><th>VC</th><td>{{ result.vc_v | sig }} V</td></tr>
-      <tr><th>VE</th><td>{{ result.ve_v | sig }} V</td></tr>
-      <tr><th>VTH</th><td>{{ result.vth_v | sig }} V</td></tr>
-      <tr><th>RTH</th><td>{{ (result.rth_ohm / 1000) | sig }} k&Omega;</td></tr>
-    </tbody>
-  </table>
+      <label class="field" for="re">
+        <span class="field-name">R<sub>E</sub> <span class="field-desc">(Emitter Resistor)</span></span>
+        <span class="control">
+          <input id="re" name="re" value="{{ values.get('re', '') }}" inputmode="decimal" required>
+          <span class="unit">k&Omega;</span>
+        </span>
+      </label>
 
-  {% if result.warnings %}
-  <h3>Warnings</h3>
-  <ul class="warnings">
-    {% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}
-  </ul>
-  {% endif %}
-</section>
+      <label class="field" for="beta">
+        <span class="field-name">&beta; <span class="field-desc">(Current Gain)</span></span>
+        <span class="control">
+          <input id="beta" name="beta" value="{{ values.get('beta', '') }}" inputmode="decimal" required>
+          <span class="unit">&ndash;</span>
+        </span>
+      </label>
+
+      <label class="field" for="vbe">
+        <span class="field-name">V<sub>BE</sub> <span class="field-desc">(Base-Emitter Voltage)</span></span>
+        <span class="control">
+          <input id="vbe" name="vbe" value="{{ values.get('vbe', '') }}" inputmode="decimal" required>
+          <span class="unit">V</span>
+        </span>
+      </label>
+
+      <button type="submit" class="calculate">
+        <span class="btn-icon">&#9639;</span> Calculate DC Bias
+      </button>
+    </form>
+
+    {% if error %}
+    <div class="error" role="alert">{{ error }}</div>
+    {% endif %}
+  </section>
+
+  <section class="panel panel-circuit">
+    <h2 class="panel-title">
+      <span class="panel-icon">&#9673;</span> Circuit: Common-Emitter Amplifier
+    </h2>
+
+    <svg class="schematic" viewBox="0 0 360 280" role="img"
+         aria-label="Common-emitter amplifier with voltage-divider bias">
+      <defs>
+        <path id="zigzag" d="M0 0 v4 l7 3 l-14 6 l14 6 l-14 6 l14 6 l-7 3 v4"/>
+        <g id="ground">
+          <path d="M-11 0h22M-7 5h14M-3 10h6"
+                fill="none" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+        <marker id="npn-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0L10 5L0 10z" fill="#334155"/>
+        </marker>
+      </defs>
+
+      <g class="wire">
+        <path d="M150 36H290"/>
+        <path d="M150 36V60"/>
+        <path d="M290 36V60"/>
+        <path d="M150 98V150"/>
+        <path d="M150 150H234"/>
+        <path d="M150 150V170"/>
+        <path d="M150 208V226"/>
+        <path d="M290 98V120"/>
+        <path d="M274 120H290"/>
+        <path d="M274 180H290"/>
+        <path d="M290 218V240"/>
+      </g>
+
+      <use class="component" href="#zigzag" x="150" y="60"/>
+      <use class="component" href="#zigzag" x="290" y="60"/>
+      <use class="component" href="#zigzag" x="150" y="170"/>
+      <use class="component" href="#zigzag" x="290" y="180"/>
+
+      <g class="device" transform="translate(250,150)">
+        <circle cx="0" cy="0" r="28"/>
+        <path d="M-16 -16V16"/>
+        <path d="M-16 -8L24 -30"/>
+        <path d="M-16 8L4 19" marker-end="url(#npn-arrow)"/>
+        <path d="M4 19L24 30"/>
+      </g>
+
+      <circle class="node" cx="150" cy="150" r="3.5"/>
+
+      <use class="ground" href="#ground" x="150" y="226"/>
+      <use class="ground" href="#ground" x="290" y="240"/>
+
+      <text class="rail-label" x="180" y="26" text-anchor="middle">V<tspan baseline-shift="sub" font-size="8">CC</tspan> = {{ values.get('vcc', '') }} V</text>
+
+      <text class="part-label" x="138" y="76" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">1</tspan></text>
+      <text class="part-value" x="138" y="91" text-anchor="end">{{ values.get('r1', '') }} k&#8486;</text>
+
+      <text class="part-label" x="138" y="186" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">2</tspan></text>
+      <text class="part-value" x="138" y="201" text-anchor="end">{{ values.get('r2', '') }} k&#8486;</text>
+
+      <text class="part-label" x="302" y="76">R<tspan baseline-shift="sub" font-size="8">C</tspan></text>
+      <text class="part-value" x="302" y="91">{{ values.get('rc', '') }} k&#8486;</text>
+
+      <text class="part-label" x="302" y="196">R<tspan baseline-shift="sub" font-size="8">E</tspan></text>
+      <text class="part-value" x="302" y="211">{{ values.get('re', '') }} k&#8486;</text>
+
+      <text class="part-label" x="250" y="206" text-anchor="middle">Q<tspan baseline-shift="sub" font-size="8">1</tspan> NPN</text>
+      <text class="part-value" x="250" y="221" text-anchor="middle">&beta; = {{ values.get('beta', '') }}</text>
+    </svg>
+  </section>
+
+  <section class="panel panel-results">
+    <h2 class="panel-title">
+      <span class="panel-icon">&#9647;</span> DC Bias Results
+    </h2>
+
+    {% if result %}
+    <table class="results">
+      <tbody>
+        <tr><th>V<sub>B</sub></th><td>{{ result.vb_v | sig }} <span class="u">V</span></td></tr>
+        <tr><th>V<sub>E</sub></th><td>{{ result.ve_v | sig }} <span class="u">V</span></td></tr>
+        <tr><th>V<sub>C</sub></th><td>{{ result.vc_v | sig }} <span class="u">V</span></td></tr>
+        <tr><th>V<sub>CE</sub></th><td>{{ result.vce_v | sig }} <span class="u">V</span></td></tr>
+        <tr><th>I<sub>B</sub></th><td>{{ (result.ib_a * 1000000) | sig }} <span class="u">&micro;A</span></td></tr>
+        <tr><th>I<sub>C</sub></th><td>{{ (result.ic_a * 1000) | sig }} <span class="u">mA</span></td></tr>
+        <tr><th>I<sub>E</sub></th><td>{{ (result.ie_a * 1000) | sig }} <span class="u">mA</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="region-box region-{{ result.region.value }}">
+      {% if result.region.value == 'active' %}
+      <strong>Active region approximation OK</strong>
+      <span>V<sub>CE</sub> = {{ result.vce_v | sig }} V &gt; 0.2 V (transistor in active region)</span>
+      {% elif result.region.value == 'saturation' %}
+      <strong>Saturation warning</strong>
+      <span>V<sub>CE</sub> = 0.2 V &le; V<sub>CE(sat)</sub>; the transistor is in saturation, so I<sub>C</sub> is set by R<sub>C</sub> + R<sub>E</sub>.</span>
+      {% else %}
+      <strong>Cutoff warning</strong>
+      <span>V<sub>TH</sub> = {{ result.vth_v | sig }} V &le; V<sub>BE</sub>; the transistor is in cutoff (base-emitter junction off).</span>
+      {% endif %}
+    </div>
+
+    {% if result.warnings %}
+    <ul class="warnings">
+      {% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% else %}
+    <p class="placeholder">Enter the circuit parameters and press
+      <strong>Calculate DC Bias</strong> to see V<sub>B</sub>, V<sub>E</sub>,
+      V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub> and
+      I<sub>E</sub>.</p>
+    {% endif %}
+  </section>
+</div>
 
 {% if comparison %}
-<section class="compare">
-  <h2>Cross-check: exact vs. approximation</h2>
-  <table>
-    <thead>
-      <tr><th></th><th>Exact</th><th>Approximate</th><th>&Delta;</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th>IC</th>
-        <td>{{ (result.ic_a * 1000) | sig }} mA</td>
-        <td>{{ (comparison.approx_ic_a * 1000) | sig }} mA</td>
-        <td>{{ comparison.delta_ic_pct | sig }} %</td>
-      </tr>
-      <tr>
-        <th>VCE</th>
-        <td>{{ result.vce_v | sig }} V</td>
-        <td>{{ comparison.approx_vce_v | sig }} V</td>
-        <td>{{ comparison.delta_vce_pct | sig }} %</td>
-      </tr>
-      <tr>
-        <th>IB</th>
-        <td>{{ (result.ib_a * 1000000) | sig }} &micro;A</td>
-        <td>{{ (comparison.approx_ib_a * 1000000) | sig }} &micro;A</td>
-        <td>&mdash;</td>
-      </tr>
-    </tbody>
-  </table>
-  <p class="verdict">
-    beta &middot; RE / RTH = {{ comparison.stiffness_ratio | sig }} &mdash;
-    {% if comparison.stiff %}
-    divider is stiff, the approximation is valid.
-    {% else %}
-    divider is not stiff, the approximation is inaccurate.
-    {% endif %}
-  </p>
+<section class="panel crosscheck">
+  <h2 class="panel-title">
+    <span class="panel-icon">&#8644;</span> Cross-check: exact vs. approximation
+  </h2>
+  <div class="crosscheck-grid">
+    <div><span>Exact I<sub>C</sub></span><strong>{{ (result.ic_a * 1000) | sig }} mA</strong></div>
+    <div><span>Approx I<sub>C</sub></span><strong>{{ (comparison.approx_ic_a * 1000) | sig }} mA</strong></div>
+    <div><span>&Delta; I<sub>C</sub></span><strong>{{ comparison.delta_ic_pct | sig }} %</strong></div>
+    <div><span>Exact V<sub>CE</sub></span><strong>{{ result.vce_v | sig }} V</strong></div>
+    <div><span>Approx V<sub>CE</sub></span><strong>{{ comparison.approx_vce_v | sig }} V</strong></div>
+    <div><span>&Delta; V<sub>CE</sub></span><strong>{{ comparison.delta_vce_pct | sig }} %</strong></div>
+    <div><span>&beta; &middot; R<sub>E</sub> / R<sub>TH</sub></span><strong>{{ comparison.stiffness_ratio | sig }}</strong></div>
+    <div class="verdict">
+      {% if comparison.stiff %}
+      Divider is stiff, the approximation is valid.
+      {% else %}
+      Divider is not stiff, the approximation is inaccurate.
+      {% endif %}
+    </div>
+  </div>
 </section>
-{% else %}
+{% elif result %}
 <p class="note">
-  The cross-check applies to the active region only; the device is in
+  The cross-check applies to the active region only; the transistor is in
   {{ result.region.value }}.
 </p>
-{% endif %}
 {% endif %}
 {% endblock %}
