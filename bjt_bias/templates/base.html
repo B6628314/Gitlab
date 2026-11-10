@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BJT Bias Calculator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>BJT Common-Emitter DC Bias</h1>
+      <p class="subtitle">Voltage-divider bias &middot; ENG29 2121</p>
+    </header>
+    {% block content %}{% endblock %}
+    <footer>
+      <p>VCE(sat) = 0.2 V &middot; stiff-divider criterion: beta &middot; RE &ge; 10 &middot; RTH</p>
+    </footer>
+  </main>
+</body>
+</html>

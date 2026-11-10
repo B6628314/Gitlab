@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="post" action="/">
+  <h2>Inputs</h2>
+  <p class="hint">Resistances in ohms (enter 47 k&Omega; as 47000).</p>
+
+  <div class="fields">
+    <label>VCC (V)<input name="vcc" value="{{ form.get('vcc', '') }}" inputmode="decimal" required></label>
+    <label>R1 (&Omega;)<input name="r1" value="{{ form.get('r1', '') }}" inputmode="decimal" required></label>
+    <label>R2 (&Omega;)<input name="r2" value="{{ form.get('r2', '') }}" inputmode="decimal" required></label>
+    <label>RC (&Omega;)<input name="rc" value="{{ form.get('rc', '') }}" inputmode="decimal" required></label>
+    <label>RE (&Omega;)<input name="re" value="{{ form.get('re', '') }}" inputmode="decimal" required></label>
+    <label>beta<input name="beta" value="{{ form.get('beta', '') }}" inputmode="decimal" required></label>
+    <label>VBE (V)<input name="vbe" value="{{ form.get('vbe', '') }}" inputmode="decimal" required></label>
+  </div>
+
+  <button type="submit">Analyze</button>
+</form>
+
+{% if error %}
+<div class="error" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if result %}
+<section class="results">
+  <h2>DC Operating Point</h2>
+  <p class="region region-{{ result.region.value }}">Region: {{ result.region.value }}</p>
+
+  <table>
+    <tbody>
+      <tr><th>IC</th><td>{{ (result.ic_a * 1000) | sig }} mA</td></tr>
+      <tr><th>IB</th><td>{{ (result.ib_a * 1000000) | sig }} &micro;A</td></tr>
+      <tr><th>IE</th><td>{{ (result.ie_a * 1000) | sig }} mA</td></tr>
+      <tr><th>VCE</th><td>{{ result.vce_v | sig }} V</td></tr>
+      <tr><th>VB</th><td>{{ result.vb_v | sig }} V</td></tr>
+      <tr><th>VC</th><td>{{ result.vc_v | sig }} V</td></tr>
+      <tr><th>VE</th><td>{{ result.ve_v | sig }} V</td></tr>
+      <tr><th>VTH</th><td>{{ result.vth_v | sig }} V</td></tr>
+      <tr><th>RTH</th><td>{{ (result.rth_ohm / 1000) | sig }} k&Omega;</td></tr>
+    </tbody>
+  </table>
+
+  {% if result.warnings %}
+  <h3>Warnings</h3>
+  <ul class="warnings">
+    {% for warning in result.warnings %}<li>{{ warning }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+{% if comparison %}
+<section class="compare">
+  <h2>Cross-check: exact vs. approximation</h2>
+  <table>
+    <thead>
+      <tr><th></th><th>Exact</th><th>Approximate</th><th>&Delta;</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>IC</th>
+        <td>{{ (result.ic_a * 1000) | sig }} mA</td>
+        <td>{{ (comparison.approx_ic_a * 1000) | sig }} mA</td>
+        <td>{{ comparison.delta_ic_pct | sig }} %</td>
+      </tr>
+      <tr>
+        <th>VCE</th>
+        <td>{{ result.vce_v | sig }} V</td>
+        <td>{{ comparison.approx_vce_v | sig }} V</td>
+        <td>{{ comparison.delta_vce_pct | sig }} %</td>
+      </tr>
+      <tr>
+        <th>IB</th>
+        <td>{{ (result.ib_a * 1000000) | sig }} &micro;A</td>
+        <td>{{ (comparison.approx_ib_a * 1000000) | sig }} &micro;A</td>
+        <td>&mdash;</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="verdict">
+    beta &middot; RE / RTH = {{ comparison.stiffness_ratio | sig }} &mdash;
+    {% if comparison.stiff %}
+    divider is stiff, the approximation is valid.
+    {% else %}
+    divider is not stiff, the approximation is inaccurate.
+    {% endif %}
+  </p>
+</section>
+{% else %}
+<p class="note">
+  The cross-check applies to the active region only; the device is in
+  {{ result.region.value }}.
+</p>
+{% endif %}
+{% endif %}
+{% endblock %}
