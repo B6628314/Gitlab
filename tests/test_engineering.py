@@ -1,6 +1,6 @@
 import unittest
 
-from bjt_bias.engineering import BiasInputs, InputError, parse_inputs
+from bjt_bias.engineering import BiasInputs, InputError, Region, analyze, parse_inputs
 
 
 def valid_form(**overrides):
@@ -77,6 +77,71 @@ class ParseInputsTest(unittest.TestCase):
         self.assertAlmostEqual(inputs.re, 0.001)
         self.assertAlmostEqual(inputs.beta, 10000.0)
         self.assertAlmostEqual(inputs.vcc, 1000000.0)
+
+
+class AnalyzeTest(unittest.TestCase):
+    def test_reference_case_is_active(self):
+        r = analyze(parse_inputs(valid_form()))
+        self.assertEqual(r.region, Region.ACTIVE)
+        self.assertAlmostEqual(r.vth_v, 2.105263, places=5)
+        self.assertAlmostEqual(r.rth_ohm, 8245.614, places=2)
+        self.assertAlmostEqual(r.ib_a, 8.824501e-6, places=11)
+        self.assertAlmostEqual(r.ic_a, 1.323675e-3, places=8)
+        self.assertAlmostEqual(r.ie_a, 1.332500e-3, places=8)
+        self.assertAlmostEqual(r.vce_v, 7.755415, places=5)
+        self.assertAlmostEqual(r.ve_v, 1.332500, places=5)
+        self.assertAlmostEqual(r.vb_v, 2.032500, places=5)
+        self.assertAlmostEqual(r.vc_v, 9.087915, places=5)
+
+    def test_cutoff_clamps_to_zero_current(self):
+        r = analyze(parse_inputs(valid_form(r2="2200")))
+        self.assertEqual(r.region, Region.CUTOFF)
+        self.assertAlmostEqual(r.vth_v, 0.536585, places=5)
+        self.assertEqual((r.ib_a, r.ic_a, r.ie_a), (0.0, 0.0, 0.0))
+        self.assertAlmostEqual(r.vce_v, 12.0)
+        self.assertAlmostEqual(r.ve_v, 0.0)
+        self.assertAlmostEqual(r.vb_v, r.vth_v)
+        self.assertAlmostEqual(r.vc_v, 12.0)
+
+    def test_saturation_uses_external_limit(self):
+        r = analyze(parse_inputs(valid_form(re="100")))
+        self.assertEqual(r.region, Region.SATURATION)
+        self.assertAlmostEqual(r.vce_v, 0.2)
+        self.assertAlmostEqual(r.ic_a, 5.130435e-3, places=8)
+        self.assertAlmostEqual(r.ib_a, 106.9087e-6, places=9)
+        self.assertAlmostEqual(r.ie_a, 5.237344e-3, places=8)
+        self.assertAlmostEqual(r.vb_v, 1.223734, places=5)
+        self.assertAlmostEqual(r.vc_v, 0.713043, places=5)
+
+    def test_near_saturation_warns_but_stays_active(self):
+        r = analyze(parse_inputs(valid_form(re="242")))
+        self.assertEqual(r.region, Region.ACTIVE)
+        self.assertAlmostEqual(r.vce_v, 0.4994, places=3)
+        self.assertTrue(any("saturation" in w for w in r.warnings))
+
+    def test_every_region_has_physical_output(self):
+        for form in (valid_form(), valid_form(r2="2200"), valid_form(re="100")):
+            r = analyze(parse_inputs(form))
+            self.assertGreaterEqual(min(r.ib_a, r.ic_a, r.ie_a), 0.0)
+            self.assertGreaterEqual(r.vce_v, 0.0)
+            self.assertLessEqual(r.vce_v, 12.0)
+
+    def test_extreme_values_do_not_crash(self):
+        r = analyze(parse_inputs(valid_form(re="0.001", beta="10000", vcc="1000000")))
+        self.assertIn(r.region, (Region.ACTIVE, Region.SATURATION, Region.CUTOFF))
+        self.assertGreaterEqual(r.ic_a, 0.0)
+
+    def test_non_stiff_divider_warns(self):
+        r = analyze(parse_inputs(valid_form(r1="10000", r2="10000", rc="100",
+                                            re="100", beta="20")))
+        self.assertEqual(r.region, Region.ACTIVE)
+        self.assertTrue(any("not stiff" in w for w in r.warnings))
+
+    def test_implausible_inputs_warn_but_still_analyze(self):
+        r = analyze(parse_inputs(valid_form(vbe="0.95", beta="10", vcc="40")))
+        self.assertTrue(any("VBE" in w for w in r.warnings))
+        self.assertTrue(any("beta" in w for w in r.warnings))
+        self.assertTrue(any("VCC" in w for w in r.warnings))
 
 
 if __name__ == "__main__":
