@@ -66,6 +66,10 @@ def parse_inputs(form: Mapping[str, str], resistor_scale: float = 1.0) -> BiasIn
 
     if values["vcc"] <= 0:
         raise InputError("VCC must be greater than zero.")
+    if values["vcc"] <= VCE_SAT:
+        raise InputError(
+            f"VCC must be greater than VCE_SAT ({_fmt(VCE_SAT)} V)."
+        )
     for name in ("r1", "r2", "rc", "re"):
         values[name] *= resistor_scale
         if values[name] <= 0:
@@ -102,6 +106,14 @@ def _fmt(value: float) -> str:
     return f"{value:.4g}"
 
 
+def _check_finite(*values: float) -> None:
+    """Reject overflowed intermediates instead of returning inf/nan results."""
+    if not all(math.isfinite(value) for value in values):
+        raise InputError(
+            "Values are too large to compute; check the input magnitudes."
+        )
+
+
 def _solve_saturation(
     inputs: BiasInputs, vth: float, rth: float
 ) -> tuple[float, float]:
@@ -125,6 +137,7 @@ def analyze(inputs: BiasInputs) -> BiasResult:
     """Compute the DC operating point, clamped to the physical region."""
     vth = inputs.vcc * inputs.r2 / (inputs.r1 + inputs.r2)
     rth = inputs.r1 * inputs.r2 / (inputs.r1 + inputs.r2)
+    _check_finite(vth, rth)
     warnings: list[str] = []
 
     if vth <= inputs.vbe:
@@ -139,6 +152,10 @@ def analyze(inputs: BiasInputs) -> BiasResult:
         )
     else:
         ib = (vth - inputs.vbe) / (rth + (inputs.beta + 1) * inputs.re)
+        if not ib > 0.0:
+            raise InputError(
+                "Values are too large to compute; check the input magnitudes."
+            )
         ic = inputs.beta * ib
         ie = (inputs.beta + 1) * ib
         vce = inputs.vcc - ic * inputs.rc - ie * inputs.re
@@ -159,6 +176,8 @@ def analyze(inputs: BiasInputs) -> BiasResult:
         vb = ie * inputs.re + inputs.vbe
         ve = ie * inputs.re
         vc = inputs.vcc - ic * inputs.rc
+
+    _check_finite(ib, ic, ie, vce, vb, vc, ve)
 
     if inputs.vbe < VBE_WARN_RANGE[0] or inputs.vbe > VBE_WARN_RANGE[1]:
         warnings.append(
@@ -213,6 +232,8 @@ def compare(inputs: BiasInputs, result: BiasResult) -> "Comparison | None":
     Returns None outside the active region, where the approximation is invalid.
     """
     if result.region is not Region.ACTIVE:
+        return None
+    if not math.isfinite(result.ic_a) or result.ic_a <= 0.0:
         return None
 
     vb = result.vth_v

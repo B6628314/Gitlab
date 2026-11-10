@@ -106,17 +106,21 @@ VC  = VCC
 ```
 
 **Saturation** (active-model `VCE <= VCE_SAT`): the collector current is set by
-the external circuit, not by beta. Solve the base loop with `IE = IC + IB`:
+the external circuit, not by beta. Solve the two circuit equations with
+`VCE = VCE_SAT` and `IE = IC + IB`:
 
 ```
-IC  = (VCC - VCE_SAT) / (RC + RE)
-VCE = VCE_SAT
-IB  = (VTH - VBE - IC * RE) / (RTH + RE)     (floored at 0)
+IC * (RC + RE) + IB * RE      = VCC - VCE_SAT
+IC * RE + IB * (RTH + RE)     = VTH - VBE
+VCE = VC - VE = VCE_SAT
 IE  = IC + IB
 VB  = IE * RE + VBE
 VC  = VCC - IC * RC
 VE  = IE * RE
 ```
+
+Solving the pair keeps `VC - VE` equal to the reported `VCE` exactly, which the
+single-equation form does not.
 
 **Active:** the exact equations above.
 
@@ -157,8 +161,9 @@ VB = 0.5366 V, VE = 0, VC = 12 V.
 ### Saturation reference case
 
 VCC 12 V, R1 47 kΩ, R2 10 kΩ, RC 2.2 kΩ, RE 100 Ω, beta 150, VBE 0.7 V
-→ active model gives VCE < 0, so saturation. Expected: IC = 5.1304 mA,
-VCE = 0.2 V, IB = 106.91 µA, IE = 5.2373 mA, VB = 1.2237 V, VC = 0.7131 V.
+→ active model gives VCE < 0, so saturation. Expected: IC = 5.1258 mA,
+VCE = 0.2 V, IB = 106.96 µA, IE = 5.2327 mA, VB = 1.2233 V, VC = 0.7233 V,
+VE = 0.5233 V (and VC - VE = VCE exactly).
 
 ## Approaches considered
 
@@ -202,7 +207,8 @@ module, and hand a result object to the template.
 **Hard errors** (no results rendered, form keeps the user's values):
 
 - non-numeric or missing field
-- `VCC <= 0`
+- non-finite (`nan`, `inf`) input, or intermediate values that overflow
+- `VCC <= 0`, or `VCC <= VCE_SAT` (a supply below 0.2 V cannot forward-bias the device)
 - `R1, R2, RC, RE <= 0`
 - `beta <= 1`
 - `VBE < 0`
@@ -237,13 +243,13 @@ module, and hand a result object to the template.
 
 ## Verification
 
-1. `python -m unittest discover -s tests -v` — all green, including the cutoff
-   and saturation reference cases.
-2. `python run.py` — `http://127.0.0.1:5000` serves the form.
+1. `.venv\Scripts\python -m unittest discover -s tests -t . -v` — all green,
+   including the cutoff and saturation reference cases.
+2. `.venv\Scripts\python run.py` — `http://127.0.0.1:5000` serves the form.
 3. POST the reference case — page shows IC ≈ 1.324 mA, VCE ≈ 7.76 V, active,
    ΔIC ≈ 6.2 %, stiff divider.
-4. POST the saturation case — page shows IC ≈ 5.130 mA, VCE = 0.2 V, saturated,
-   no negative numbers, cross-check panel replaced by the note.
+4. POST the saturation case — page shows IC ≈ 5.126 mA, VCE = 0.2 V, saturated,
+   VC - VE = 0.2 V, no negative numbers, cross-check panel replaced by the note.
 5. Commit and push to `origin/main`.
 
 ## UI revision (2026-11-10, after approval)

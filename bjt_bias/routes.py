@@ -37,6 +37,7 @@ def index():
 def analyze_form():
     try:
         inputs = parse_inputs(request.form, resistor_scale=RESISTOR_SCALE)
+        result = analyze(inputs)
     except InputError as exc:
         return (
             render_template(
@@ -49,7 +50,6 @@ def analyze_form():
             400,
         )
 
-    result = analyze(inputs)
     return render_template(
         "index.html",
         values=request.form,

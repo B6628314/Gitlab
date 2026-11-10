@@ -61,6 +61,22 @@ class RoutesTest(unittest.TestCase):
         response = self.client.post("/", data=form(vcc="nan"))
         self.assertEqual(response.status_code, 400)
 
+    def test_huge_input_returns_400_without_nan(self):
+        for data in (
+            form(r1="1e200", r2="1e200"),
+            form(beta="1e308"),
+            form(vcc="1e200", r1="1e200", r2="1e200"),
+        ):
+            with self.subTest(data=data):
+                response = self.client.post("/", data=data)
+                self.assertEqual(response.status_code, 400)
+                self.assertNotIn(b"nan", response.data.lower())
+
+    def test_vcc_below_saturation_voltage_returns_400(self):
+        response = self.client.post("/", data=form(vcc="0.1"))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"VCE_SAT", response.data)
+
 
 if __name__ == "__main__":
     unittest.main()

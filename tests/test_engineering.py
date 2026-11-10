@@ -74,6 +74,11 @@ class ParseInputsTest(unittest.TestCase):
         self.assertAlmostEqual(parse_inputs(valid_form(beta="20")).beta, 20.0)
         self.assertAlmostEqual(parse_inputs(valid_form(beta="500")).beta, 500.0)
 
+    def test_vcc_at_or_below_saturation_voltage_is_error(self):
+        for bad in ("0.2", "0.1"):
+            with self.subTest(bad=bad), self.assertRaises(InputError):
+                parse_inputs(valid_form(vcc=bad))
+
     def test_extreme_but_valid_values_are_accepted(self):
         inputs = parse_inputs(valid_form(re="0.001", beta="10000", vcc="1000000"))
         self.assertAlmostEqual(inputs.re, 0.001)
@@ -145,8 +150,49 @@ class AnalyzeTest(unittest.TestCase):
 
     def test_extreme_values_do_not_crash(self):
         r = analyze(parse_inputs(valid_form(re="0.001", beta="10000", vcc="1000000")))
-        self.assertIn(r.region, (Region.ACTIVE, Region.SATURATION, Region.CUTOFF))
-        self.assertGreaterEqual(r.ic_a, 0.0)
+        self.assertEqual(r.region, Region.SATURATION)
+        self.assertAlmostEqual(r.vce_v, 0.2)
+        self.assertAlmostEqual(r.ic_a, 454.545, places=3)
+
+    def test_non_finite_intermediate_is_rejected(self):
+        for form in (
+            valid_form(r1="1e200", r2="1e200"),
+            valid_form(beta="1e308"),
+            valid_form(vcc="1e200", r1="1e200", r2="1e200"),
+        ):
+            with self.subTest(form=form), self.assertRaises(InputError):
+                analyze(parse_inputs(form))
+
+    def test_cutoff_boundary_around_vbe(self):
+        self.assertEqual(
+            analyze(parse_inputs(valid_form(r2="2911"))).region, Region.CUTOFF
+        )
+        self.assertEqual(
+            analyze(parse_inputs(valid_form(r2="2912"))).region, Region.ACTIVE
+        )
+
+    def test_saturation_boundary_around_vce_sat(self):
+        self.assertEqual(
+            analyze(parse_inputs(valid_form(re="233.4"))).region, Region.SATURATION
+        )
+        r = analyze(parse_inputs(valid_form(re="233.6")))
+        self.assertEqual(r.region, Region.ACTIVE)
+        self.assertTrue(any("saturation" in w for w in r.warnings))
+
+    def test_beta_bounds_do_not_warn(self):
+        for beta in ("20", "500"):
+            r = analyze(parse_inputs(valid_form(beta=beta)))
+            self.assertFalse(any("outside the typical" in w for w in r.warnings))
+        for beta in ("19.999", "500.001"):
+            r = analyze(parse_inputs(valid_form(beta=beta)))
+            self.assertTrue(any("outside the typical" in w for w in r.warnings))
+
+    def test_vbe_bounds_do_not_warn(self):
+        for vbe in ("0.5", "0.9"):
+            r = analyze(parse_inputs(valid_form(vbe=vbe)))
+            self.assertFalse(any("VBE" in w for w in r.warnings))
+        r = analyze(parse_inputs(valid_form(vbe="0.499")))
+        self.assertTrue(any("VBE" in w for w in r.warnings))
 
     def test_non_stiff_divider_warns(self):
         r = analyze(parse_inputs(valid_form(r1="10000", r2="10000", rc="100",

@@ -48,7 +48,7 @@ result to a physically valid operating point:
 | Region | Condition | Result |
 |---|---|---|
 | Cutoff | `VTH <= VBE` | all currents 0, `VCE = VCC` |
-| Saturation | active-model `VCE <= 0.2 V` | `VCE = 0.2 V`, `IC = (VCC - 0.2) / (RC + RE)`, `IB` from the base loop |
+| Saturation | active-model `VCE <= 0.2 V` | `VCE = 0.2 V`; `IC` and `IB` solve `IC*(RC+RE) + IB*RE = VCC - 0.2` and `IC*RE + IB*(RTH+RE) = VTH - VBE`, so `VC - VE` still equals `VCE` |
 | Active | otherwise | exact solution above |
 
 Every reported current is non-negative and `0 <= VCE <= VCC`. The cross-check
@@ -61,10 +61,10 @@ python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt   # Windows
 # source .venv/bin/activate && pip install -r requirements.txt   # macOS / Linux
 
-python run.py
+.venv\Scripts\python run.py
 ```
 
-Open <http://127.0.0.1:5000>, fill the form, press **Analyze**.
+Open <http://127.0.0.1:5000>, fill the form, press **Calculate DC Bias**.
 
 Resistances are entered in kilohms: 47 kOhm is `47`. Results are shown in mA,
 microamps and volts, with 4 significant digits.
@@ -72,10 +72,10 @@ microamps and volts, with 4 significant digits.
 ## Tests
 
 ```bash
-python -m unittest discover -s tests -t . -v
+.venv\Scripts\python -m unittest discover -s tests -t . -v
 ```
 
-30 tests cover input validation, the three operating regions, the cross-check,
+41 tests cover input validation, the three operating regions, the cross-check,
 and the HTTP layer.
 
 ## Reference cases
@@ -84,12 +84,13 @@ and the HTTP layer.
 |---|---|---|---|---|---|---|---|
 | 12 V | 47 k | 10 k | 2.2 k | 1 k | 150 | 0.7 V | active: IC 1.324 mA, VCE 7.755 V, delta IC 6.164 %, stiff |
 | 12 V | 47 k | 2.2 k | 2.2 k | 1 k | 150 | 0.7 V | cutoff: all currents 0, VCE 12 V |
-| 12 V | 47 k | 10 k | 2.2 k | 100 | 150 | 0.7 V | saturation: IC 5.130 mA, VCE 0.2 V |
+| 12 V | 47 k | 10 k | 2.2 k | 100 | 150 | 0.7 V | saturation: IC 5.126 mA, IB 107.0 uA, IE 5.233 mA, VCE 0.2 V, VC 0.723 V, VE 0.523 V |
 
 ## Validation
 
-Hard errors (no result is shown): non-numeric, `nan` or `inf` input, `VCC <= 0`,
-any resistance `<= 0`, `beta <= 1`, negative `VBE`.
+Hard errors (no result is shown): missing or empty field, non-numeric, `nan`
+or `inf` input, `VCC <= 0`, `VCC <= 0.2 V` (`VCE_SAT`), any resistance `<= 0`,
+`beta <= 1`, negative `VBE`, and inputs large enough to overflow the arithmetic.
 
 Warnings (result is still shown): `VBE` outside 0.5-0.9 V, `beta` outside
 20-500, `VCC` above 30 V, cutoff, saturation, operation within 0.5 V of
@@ -116,4 +117,4 @@ run.py             development server on 127.0.0.1:5000
 saturation และเปรียบเทียบผลระหว่างวิธีคำนวณแบบละเอียด (Thevenin) กับแบบประมาณ
 (stiff divider) ให้เห็นว่าเมื่อใดการประมาณจึงใช้ได้
 
-รันด้วย `python run.py` แล้วเปิด <http://127.0.0.1:5000>
+รันด้วย `.venv\Scripts\python run.py` แล้วเปิด <http://127.0.0.1:5000>
