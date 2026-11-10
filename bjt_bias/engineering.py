@@ -102,6 +102,25 @@ def _fmt(value: float) -> str:
     return f"{value:.4g}"
 
 
+def _solve_saturation(
+    inputs: BiasInputs, vth: float, rth: float
+) -> tuple[float, float]:
+    """Solve the saturated node equations with VCE pinned to VCE_SAT.
+
+    Both equations come from the same circuit, so the resulting node
+    voltages satisfy VCE = VC - VE exactly:
+
+        IC * (RC + RE) + IB * RE = VCC - VCE_SAT
+        IC * RE + IB * (RTH + RE) = VTH - VBE
+    """
+    a = inputs.vcc - VCE_SAT
+    b = vth - inputs.vbe
+    det = (inputs.rc + inputs.re) * (rth + inputs.re) - inputs.re * inputs.re
+    ic = (a * (rth + inputs.re) - inputs.re * b) / det
+    ib = ((inputs.rc + inputs.re) * b - inputs.re * a) / det
+    return max(ic, 0.0), max(ib, 0.0)
+
+
 def analyze(inputs: BiasInputs) -> BiasResult:
     """Compute the DC operating point, clamped to the physical region."""
     vth = inputs.vcc * inputs.r2 / (inputs.r1 + inputs.r2)
@@ -125,9 +144,8 @@ def analyze(inputs: BiasInputs) -> BiasResult:
         vce = inputs.vcc - ic * inputs.rc - ie * inputs.re
         if vce <= VCE_SAT:
             region = Region.SATURATION
-            ic = (inputs.vcc - VCE_SAT) / (inputs.rc + inputs.re)
+            ic, ib = _solve_saturation(inputs, vth, rth)
             vce = VCE_SAT
-            ib = max(0.0, (vth - inputs.vbe - ic * inputs.re) / (rth + inputs.re))
             ie = ic + ib
             warnings.append(
                 "Transistor is in saturation (VCE = VCE_SAT): IC is set by RC + RE, not by beta."

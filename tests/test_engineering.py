@@ -118,11 +118,16 @@ class AnalyzeTest(unittest.TestCase):
         r = analyze(parse_inputs(valid_form(re="100")))
         self.assertEqual(r.region, Region.SATURATION)
         self.assertAlmostEqual(r.vce_v, 0.2)
-        self.assertAlmostEqual(r.ic_a, 5.130435e-3, places=8)
-        self.assertAlmostEqual(r.ib_a, 106.9087e-6, places=9)
-        self.assertAlmostEqual(r.ie_a, 5.237344e-3, places=8)
-        self.assertAlmostEqual(r.vb_v, 1.223734, places=5)
-        self.assertAlmostEqual(r.vc_v, 0.713043, places=5)
+        self.assertAlmostEqual(r.ic_a, 5.125784e-3, places=8)
+        self.assertAlmostEqual(r.ib_a, 106.964537e-6, places=9)
+        self.assertAlmostEqual(r.ie_a, 5.232749e-3, places=8)
+        self.assertAlmostEqual(r.vb_v, 1.223275, places=5)
+        self.assertAlmostEqual(r.vc_v, 0.723275, places=5)
+        self.assertAlmostEqual(r.ve_v, 0.523275, places=5)
+
+    def test_saturation_node_voltages_match_vce(self):
+        r = analyze(parse_inputs(valid_form(re="100")))
+        self.assertAlmostEqual(r.vc_v - r.ve_v, r.vce_v, places=9)
 
     def test_near_saturation_warns_but_stays_active(self):
         r = analyze(parse_inputs(valid_form(re="242")))
@@ -136,6 +141,7 @@ class AnalyzeTest(unittest.TestCase):
             self.assertGreaterEqual(min(r.ib_a, r.ic_a, r.ie_a), 0.0)
             self.assertGreaterEqual(r.vce_v, 0.0)
             self.assertLessEqual(r.vce_v, 12.0)
+            self.assertAlmostEqual(r.vc_v - r.ve_v, r.vce_v, places=9)
 
     def test_extreme_values_do_not_crash(self):
         r = analyze(parse_inputs(valid_form(re="0.001", beta="10000", vcc="1000000")))
