@@ -109,4 +109,7 @@ and the field name before touching the equations.
   the Lab 2 result (IC 1.23 mA, VCE 8.052 V). A4 confirms that changing only
   RE from 1 kΩ to 2 kΩ lowers IC from 1.026 mA to 0.9401 mA.
 - Screenshots for A4 and A5 saved under `docs/evidence/`.
+- Schematic restyled for readability (teal transistor, supply rail, junction
+  dots, value typography) without changing any calculation. A4 and A5 evidence
+  screenshots were retaken with the same inputs and show the same values.
 

@@ -107,23 +107,39 @@
     <svg class="schematic" viewBox="0 0 360 280" role="img"
          aria-label="Common-emitter amplifier with {{ mode_label | lower }}">
       <defs>
+        <pattern id="blueprint-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="1" fill="#cbd5e1" opacity="0.45"/>
+        </pattern>
+        <linearGradient id="device-fill" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f0fdfa"/>
+          <stop offset="1" stop-color="#ccfbf1"/>
+        </linearGradient>
         <path id="zigzag" d="M0 0 v4 l7 3 l-14 6 l14 6 l-14 6 l14 6 l-7 3 v4"/>
-        <g id="ground">
-          <path d="M-11 0h22M-7 5h14M-3 10h6"
-                fill="none" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/>
+        <g id="ground" fill="none" stroke="#475569" stroke-linecap="round">
+          <path d="M-13 0H13" stroke-width="2.4"/>
+          <path d="M-8 5H8" stroke-width="2.1"/>
+          <path d="M-3.5 10H3.5" stroke-width="1.9"/>
         </g>
-        <marker id="npn-arrow" viewBox="0 0 10 10" refX="9" refY="5"
-                markerWidth="7" markerHeight="7" orient="auto">
-          <path d="M0 0L10 5L0 10z" fill="#334155"/>
+        <marker id="npn-arrow" viewBox="0 0 10 10" refX="8.5" refY="5"
+                markerWidth="5.5" markerHeight="5.5" orient="auto">
+          <path d="M0 0L10 5L0 10z" fill="#134e4a"/>
         </marker>
       </defs>
 
-      <g class="wire">
+      <rect width="360" height="280" rx="10" fill="url(#blueprint-grid)"/>
+
+      <g class="wire rail">
         <path d="M150 36H290"/>
         <path d="M150 36V60"/>
         <path d="M290 36V60"/>
+        <path d="M220 36V26"/>
+      </g>
+      <circle class="terminal" cx="220" cy="26" r="3"/>
+      <circle class="node rail-node" cx="220" cy="36" r="3.2"/>
+
+      <g class="wire">
         <path d="M150 98V150"/>
-        <path d="M150 150H234"/>
+        <path d="M150 150H220"/>
         {% if mode == 'divider' %}
         <path d="M150 150V170"/>
         <path d="M150 208V226"/>
@@ -148,45 +164,48 @@
       {% endif %}
 
       <g class="device" transform="translate(250,150)">
-        <circle cx="0" cy="0" r="28"/>
-        <path d="M-16 -16V16"/>
-        <path d="M-16 -8L24 -30"/>
-        <path d="M-16 8L4 19" marker-end="url(#npn-arrow)"/>
-        <path d="M4 19L24 30"/>
+        <circle cx="0" cy="0" r="30"/>
+        <path d="M-30 0H-14"/>
+        <path class="base-bar" d="M-14 -18V18"/>
+        <path d="M-14 -9L24 -30"/>
+        <path d="M-14 9L12 22" marker-end="url(#npn-arrow)"/>
+        <path d="M12 22L24 30"/>
       </g>
 
-      <circle class="node" cx="150" cy="150" r="3.5"/>
+      {% if mode == 'divider' %}
+      <circle class="node" cx="150" cy="150" r="3.6"/>
+      {% endif %}
 
       {% if mode == 'divider' %}
       <use class="ground" href="#ground" x="150" y="226"/>
       {% endif %}
       <use class="ground" href="#ground" x="290" y="240"/>
 
-      <text class="rail-label" x="180" y="26" text-anchor="middle">V<tspan baseline-shift="sub" font-size="8">CC</tspan> = {{ values.get('vcc', '') }} V</text>
+      <text class="rail-label" x="220" y="16" text-anchor="middle">V<tspan baseline-shift="sub" font-size="8">CC</tspan> = {{ values.get('vcc', '') }} V</text>
 
       {% if mode == 'divider' %}
-      <text class="part-label" x="138" y="76" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">1</tspan></text>
-      <text class="part-value" x="138" y="91" text-anchor="end">{{ values.get('r1', '') }} k&#8486;</text>
+      <text class="part-label" x="138" y="78" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">1</tspan></text>
+      <text class="part-value" x="138" y="93" text-anchor="end">{{ values.get('r1', '') }} <tspan class="part-unit">k&#8486;</tspan></text>
 
-      <text class="part-label" x="138" y="186" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">2</tspan></text>
-      <text class="part-value" x="138" y="201" text-anchor="end">{{ values.get('r2', '') }} k&#8486;</text>
+      <text class="part-label" x="138" y="188" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">2</tspan></text>
+      <text class="part-value" x="138" y="203" text-anchor="end">{{ values.get('r2', '') }} <tspan class="part-unit">k&#8486;</tspan></text>
       {% else %}
-      <text class="part-label" x="138" y="76" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">B</tspan></text>
-      <text class="part-value" x="138" y="91" text-anchor="end">{{ values.get('rb', '') }} k&#8486;</text>
+      <text class="part-label" x="138" y="78" text-anchor="end">R<tspan baseline-shift="sub" font-size="8">B</tspan></text>
+      <text class="part-value" x="138" y="93" text-anchor="end">{{ values.get('rb', '') }} <tspan class="part-unit">k&#8486;</tspan></text>
       {% endif %}
 
-      <text class="part-label" x="302" y="76">R<tspan baseline-shift="sub" font-size="8">C</tspan></text>
-      <text class="part-value" x="302" y="91">{{ values.get('rc', '') }} k&#8486;</text>
+      <text class="part-label" x="302" y="78">R<tspan baseline-shift="sub" font-size="8">C</tspan></text>
+      <text class="part-value" x="302" y="93">{{ values.get('rc', '') }} <tspan class="part-unit">k&#8486;</tspan></text>
 
       {% if mode != 'fixed' %}
-      <text class="part-label" x="302" y="196">R<tspan baseline-shift="sub" font-size="8">E</tspan></text>
-      <text class="part-value" x="302" y="211">{{ values.get('re', '') }} k&#8486;</text>
+      <text class="part-label" x="302" y="198">R<tspan baseline-shift="sub" font-size="8">E</tspan></text>
+      <text class="part-value" x="302" y="213">{{ values.get('re', '') }} <tspan class="part-unit">k&#8486;</tspan></text>
       {% else %}
-      <text class="part-value" x="302" y="211">E &rarr; GND</text>
+      <text class="part-value" x="302" y="210">E &rarr; GND</text>
       {% endif %}
 
-      <text class="part-label" x="250" y="206" text-anchor="middle">Q<tspan baseline-shift="sub" font-size="8">1</tspan> NPN</text>
-      <text class="part-value" x="250" y="221" text-anchor="middle">&beta; = {{ values.get('beta', '') }}</text>
+      <text class="part-label" x="250" y="207" text-anchor="middle">Q<tspan baseline-shift="sub" font-size="8">1</tspan> NPN</text>
+      <text class="part-value" x="250" y="222" text-anchor="middle">&beta; = {{ values.get('beta', '') }}</text>
     </svg>
   </section>
 

@@ -294,68 +294,100 @@ body {
 /* ---------- schematic ---------- */
 
 .schematic {
+  display: block;
   width: 100%;
   height: auto;
-  color: #475569;
+  overflow: hidden;
+  color: #1e293b;
+  background: #fbfdff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 
 .wire path {
   fill: none;
-  stroke: #475569;
-  stroke-width: 1.6;
+  stroke: #1e293b;
+  stroke-width: 2;
   stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wire.rail path {
+  stroke: #dc2626;
+}
+
+.terminal {
+  fill: #fff;
+  stroke: #dc2626;
+  stroke-width: 2;
 }
 
 .component {
   fill: none;
-  stroke: #475569;
-  stroke-width: 1.6;
+  stroke: #1e293b;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .device circle {
-  fill: #fff;
-  stroke: #334155;
-  stroke-width: 1.6;
+  fill: url(#device-fill);
+  stroke: #0f766e;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 2px 3px rgba(13, 148, 136, 0.18));
 }
 
 .device path {
   fill: none;
-  stroke: #334155;
-  stroke-width: 1.6;
+  stroke: #134e4a;
+  stroke-width: 2;
   stroke-linecap: round;
 }
 
+.device .base-bar {
+  stroke-width: 3.4;
+}
+
 .schematic marker path {
-  fill: #334155;
+  fill: #134e4a;
   stroke: none;
 }
 
 .node {
-  fill: #334155;
+  fill: #1e293b;
+}
+
+.rail-node {
+  fill: #dc2626;
 }
 
 .ground path {
   fill: none;
   stroke: #475569;
-  stroke-width: 1.6;
   stroke-linecap: round;
 }
 
 .rail-label {
   font-size: 11px;
   font-weight: 700;
-  fill: #0f172a;
+  fill: #b91c1c;
 }
 
 .part-label {
-  font-size: 11px;
-  font-weight: 600;
-  fill: #334155;
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: #0f172a;
 }
 
 .part-value {
-  font-size: 10px;
-  fill: var(--muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  fill: #475569;
+}
+
+.part-unit {
+  fill: #94a3b8;
+  font-weight: 400;
 }
 
 /* ---------- results ---------- */
