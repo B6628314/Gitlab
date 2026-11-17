@@ -21,6 +21,7 @@ VCC_WARN_MAX = 30.0
 
 LABELS = {
     "vcc": "VCC",
+    "rb": "RB",
     "r1": "R1",
     "r2": "R2",
     "rc": "RC",
@@ -28,6 +29,24 @@ LABELS = {
     "beta": "beta",
     "vbe": "VBE",
 }
+
+MODES = ("divider", "fixed", "emitter")
+
+MODE_LABELS = {
+    "divider": "Voltage Divider Bias",
+    "fixed": "Fixed Bias",
+    "emitter": "Emitter Bias",
+}
+
+# Fields each mode needs. The form only renders these, and the parser only
+# validates these, so a hidden field from another mode cannot affect a result.
+MODE_FIELDS = {
+    "divider": ("vcc", "r1", "r2", "rc", "re", "beta", "vbe"),
+    "fixed": ("vcc", "rb", "rc", "beta", "vbe"),
+    "emitter": ("vcc", "rb", "rc", "re", "beta", "vbe"),
+}
+
+RESISTOR_FIELDS = ("rb", "r1", "r2", "rc", "re")
 
 
 class InputError(ValueError):
@@ -39,6 +58,25 @@ class BiasInputs:
     vcc: float
     r1: float
     r2: float
+    rc: float
+    re: float
+    beta: float
+    vbe: float
+
+
+@dataclass(frozen=True)
+class FixedInputs:
+    vcc: float
+    rb: float
+    rc: float
+    beta: float
+    vbe: float
+
+
+@dataclass(frozen=True)
+class EmitterInputs:
+    vcc: float
+    rb: float
     rc: float
     re: float
     beta: float
@@ -80,6 +118,59 @@ def parse_inputs(form: Mapping[str, str], resistor_scale: float = 1.0) -> BiasIn
         raise InputError("VBE must not be negative.")
 
     return BiasInputs(**values)
+
+
+def _read_fields(form: Mapping[str, str], names: tuple[str, ...]) -> dict[str, float]:
+    """Read and finite-check the named form fields without scaling them."""
+    values: dict[str, float] = {}
+    for name in names:
+        raw = form.get(name)
+        if raw is None or str(raw).strip() == "":
+            raise InputError(f"{LABELS[name]} is required.")
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            raise InputError(f"{LABELS[name]} must be a number.") from None
+        if not math.isfinite(value):
+            raise InputError(f"{LABELS[name]} must be a finite number.")
+        values[name] = value
+    return values
+
+
+def parse_mode_inputs(
+    form: Mapping[str, str], mode: str, resistor_scale: float = 1.0
+):
+    """Parse and validate only the fields the selected bias mode uses.
+
+    ``divider`` keeps the Lab 2 parser untouched so the original results do
+    not move. An unknown mode is an error: it is never treated as a divider.
+    """
+    if mode == "divider":
+        return parse_inputs(form, resistor_scale=resistor_scale)
+    if mode not in ("fixed", "emitter"):
+        raise InputError(f"Unknown bias mode: {mode!r}.")
+
+    values = _read_fields(form, MODE_FIELDS[mode])
+    if values["vcc"] <= 0:
+        raise InputError("VCC must be greater than zero.")
+    if values["vcc"] <= VCE_SAT:
+        raise InputError(
+            f"VCC must be greater than VCE_SAT ({_fmt(VCE_SAT)} V)."
+        )
+    for name in ("rb", "rc", "re"):
+        if name not in values:
+            continue
+        values[name] *= resistor_scale
+        if values[name] <= 0:
+            raise InputError(f"{LABELS[name]} must be greater than zero.")
+    if values["beta"] <= 1:
+        raise InputError("beta must be greater than 1.")
+    if values["vbe"] < 0:
+        raise InputError("VBE must not be negative.")
+
+    if mode == "fixed":
+        return FixedInputs(**values)
+    return EmitterInputs(**values)
 
 class Region(str, Enum):
     ACTIVE = "active"
@@ -213,6 +304,118 @@ def analyze(inputs: BiasInputs) -> BiasResult:
         rth_ohm=rth,
         warnings=tuple(warnings),
     )
+
+
+def _plausibility_warnings(vcc: float, beta: float, vbe: float) -> list[str]:
+    """The same input-plausibility warnings the divider path emits."""
+    warnings: list[str] = []
+    if vbe < VBE_WARN_RANGE[0] or vbe > VBE_WARN_RANGE[1]:
+        warnings.append(
+            f"VBE = {_fmt(vbe)} V is outside the typical "
+            f"{_fmt(VBE_WARN_RANGE[0])}-{_fmt(VBE_WARN_RANGE[1])} V range."
+        )
+    if beta < BETA_WARN_RANGE[0] or beta > BETA_WARN_RANGE[1]:
+        warnings.append(
+            f"beta = {_fmt(beta)} is outside the typical "
+            f"{_fmt(BETA_WARN_RANGE[0])}-{_fmt(BETA_WARN_RANGE[1])} range."
+        )
+    if vcc > VCC_WARN_MAX:
+        warnings.append(
+            f"VCC = {_fmt(vcc)} V exceeds {_fmt(VCC_WARN_MAX)} V; "
+            "check the transistor ratings."
+        )
+    return warnings
+
+
+def _model_point(
+    mode: str,
+    ib_a: float,
+    ic_a: float,
+    ie_a: float,
+    vb_v: float,
+    ve_v: float,
+    vc_v: float,
+    vce_v: float,
+    warnings: list[str],
+) -> dict:
+    """Build the shared result dict, in the units the template displays.
+
+    Values are the linear forward-active model output. Outside that region
+    the caller warns instead of inventing a cutoff or saturation solution.
+    """
+    result = {
+        "mode": mode,
+        "mode_label": MODE_LABELS[mode],
+        "ib_ma": ib_a * 1000.0,
+        "ic_ma": ic_a * 1000.0,
+        "ie_ma": ie_a * 1000.0,
+        "vb_v": vb_v,
+        "ve_v": ve_v,
+        "vc_v": vc_v,
+        "vce_v": vce_v,
+        "region": "active" if ib_a > 0.0 and vce_v > VCE_SAT else "model-warning",
+        "warnings": tuple(warnings),
+    }
+    _check_finite(
+        result["ib_ma"],
+        result["ic_ma"],
+        result["ie_ma"],
+        result["vb_v"],
+        result["ve_v"],
+        result["vc_v"],
+        result["vce_v"],
+    )
+    return result
+
+
+def analyze_fixed(inputs: FixedInputs) -> dict:
+    """DC operating point for fixed bias: RB from VCC to base, no RE."""
+    ib = (inputs.vcc - inputs.vbe) / inputs.rb
+    ic = inputs.beta * ib
+    ie = (inputs.beta + 1.0) * ib
+    ve = 0.0
+    vb = ve + inputs.vbe
+    vc = inputs.vcc - ic * inputs.rc
+    vce = vc - ve
+
+    warnings = _plausibility_warnings(inputs.vcc, inputs.beta, inputs.vbe)
+    if ib <= 0.0:
+        warnings.append(
+            "IB <= 0 A: the forward-active model may not be valid; "
+            "check VBE against VCC."
+        )
+    if vce <= VCE_SAT:
+        warnings.append(
+            f"VCE <= {_fmt(VCE_SAT)} V: the forward-active model may not be "
+            "valid; the transistor may be in saturation."
+        )
+    return _model_point("fixed", ib, ic, ie, vb, ve, vc, vce, warnings)
+
+
+def analyze_emitter(inputs: EmitterInputs) -> dict:
+    """DC operating point for single-supply emitter bias (RB and RE)."""
+    ib = (inputs.vcc - inputs.vbe) / (
+        inputs.rb + (inputs.beta + 1.0) * inputs.re
+    )
+    ic = inputs.beta * ib
+    ie = (inputs.beta + 1.0) * ib
+    ve = ie * inputs.re
+    vb = ve + inputs.vbe
+    vc = inputs.vcc - ic * inputs.rc
+    vce = vc - ve
+
+    warnings = _plausibility_warnings(inputs.vcc, inputs.beta, inputs.vbe)
+    if ib <= 0.0:
+        warnings.append(
+            "IB <= 0 A: the forward-active model may not be valid; "
+            "check VBE against VCC."
+        )
+    if vce <= VCE_SAT:
+        warnings.append(
+            f"VCE <= {_fmt(VCE_SAT)} V: the forward-active model may not be "
+            "valid; the transistor may be in saturation."
+        )
+    return _model_point("emitter", ib, ic, ie, vb, ve, vc, vce, warnings)
 
 
 @dataclass(frozen=True)
