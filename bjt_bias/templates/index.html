@@ -7,20 +7,18 @@
       <span class="panel-icon">&#9881;</span> Input Parameters
     </h2>
 
-    <form class="mode-picker" method="get" action="/">
-      <label class="mode-label" for="mode">Bias circuit</label>
-      <div class="mode-row">
-        <select id="mode" name="mode">
-          <option value="divider" {% if mode == 'divider' %}selected{% endif %}>Voltage Divider Bias</option>
-          <option value="fixed" {% if mode == 'fixed' %}selected{% endif %}>Fixed Bias</option>
-          <option value="emitter" {% if mode == 'emitter' %}selected{% endif %}>Emitter Bias</option>
-        </select>
-        <button type="submit" class="load-mode">Load circuit</button>
-      </div>
-    </form>
-
     <form method="post" action="/">
-      <input type="hidden" name="mode" value="{{ mode }}">
+      <div class="mode-picker">
+        <label class="mode-label" for="mode">Bias circuit</label>
+        <div class="mode-row">
+          <select id="mode" name="mode">
+            <option value="divider" {% if mode == 'divider' %}selected{% endif %}>Voltage Divider Bias</option>
+            <option value="fixed" {% if mode == 'fixed' %}selected{% endif %}>Fixed Bias</option>
+            <option value="emitter" {% if mode == 'emitter' %}selected{% endif %}>Emitter Bias</option>
+          </select>
+          <button type="submit" class="load-mode" formmethod="get" formaction="/" formnovalidate>Load circuit</button>
+        </div>
+      </div>
 
       <label class="field" for="vcc">
         <span class="field-name">V<sub>CC</sub> <span class="field-desc">(Supply Voltage)</span></span>
