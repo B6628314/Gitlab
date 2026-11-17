@@ -23,7 +23,7 @@ class RoutesTest(unittest.TestCase):
         self.assertIn(b"Calculate DC Bias", response.data)
         self.assertIn(b"DC Bias Results", response.data)
         self.assertIn(b"Circuit: Common-Emitter Amplifier", response.data)
-        self.assertIn(b"Week 2 Goal", response.data)
+        self.assertIn(b"Lab 03 Goal", response.data)
 
     def test_get_prefills_the_mockup_defaults(self):
         response = self.client.get("/")

@@ -219,6 +219,78 @@ body {
   font-size: 0.85rem;
 }
 
+.mode-picker {
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.mode-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.mode-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.mode-row select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.mode-row select:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+
+.load-mode {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.load-mode:hover {
+  background: #99f6e4;
+}
+
+.circuit-mode {
+  margin: 0.15rem 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--green-ink);
+}
+
+.mode-tag {
+  margin-left: auto;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 /* ---------- schematic ---------- */
 
 .schematic {
@@ -356,6 +428,12 @@ body {
   background: var(--grey-soft);
   border-color: var(--grey-line);
   color: var(--grey-ink);
+}
+
+.region-model-warning {
+  background: var(--amber-soft);
+  border-color: var(--amber-line);
+  color: var(--amber-ink);
 }
 
 .warnings {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lab 02: BJT DC Bias Web App</title>
+  <title>Lab 03: BJT DC Bias Web App</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -16,8 +16,8 @@
           <rect x="10" y="10" width="4" height="4" rx="1"/>
         </svg>
         <div>
-          <h1>Lab 02: BJT DC Bias Web App</h1>
-          <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Voltage Divider Bias)</p>
+          <h1>Lab 03: BJT DC Bias Web App</h1>
+          <p class="subtitle">ENG29 2121 &ndash; Common Emitter (Three Bias Circuits)</p>
         </div>
       </div>
       <div class="course-badge">
@@ -35,14 +35,14 @@
           <circle cx="12" cy="12" r="4"/>
           <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
         </svg>
-        Week 2 Goal
+        Lab 03 Goal
       </span>
       <p>
-        Rough target for this lab: build a Flask web app that takes the circuit
-        parameters, computes the BJT DC bias
-        (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>,
-        I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter
-        amplifier with voltage-divider bias, and displays the results.
+        Rough target for this lab: extend the Flask app so the voltage-divider
+        common-emitter stage keeps its Lab 2 result while Fixed Bias and
+        single-supply Emitter Bias can be selected, validated and solved for
+        the same DC quantities (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>,
+        V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>).
       </p>
     </footer>
   </div>
