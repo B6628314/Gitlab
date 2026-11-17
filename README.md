@@ -1,58 +1,18 @@
 # BJT Common-Emitter DC Bias Calculator
 
-A small Flask web app for the ENG29 2121 lab. Enter the voltage-divider bias
-values of a common-emitter BJT stage and get the DC operating point, the
-operating region with warnings, and a cross-check between two independent
-engineering calculations.
+A small Flask web app for the ENG29 2121 lab. Pick one of three
+common-emitter bias circuits, enter its values and get the DC operating
+point with units, input validation and region warnings.
 
-## The circuit
+- **Voltage Divider Bias** — the Lab 2 circuit, unchanged: `R1` from VCC to
+  base, `R2` from base to ground, `RC` at the collector, `RE` at the emitter.
+- **Fixed Bias** — `RB` from VCC to base, emitter grounded.
+- **Emitter Bias (single supply)** — `RB` from VCC to base, `RE` from emitter
+  to ground.
 
-Voltage-divider bias: `R1` from VCC to base, `R2` from base to ground, `RC` at
-the collector, `RE` at the emitter.
-
-Thevenin equivalent of the base divider:
-
-```
-VTH = VCC * R2 / (R1 + R2)
-RTH = R1 * R2 / (R1 + R2)
-```
-
-**Exact** solution, which accounts for base current:
-
-```
-IB  = (VTH - VBE) / (RTH + (beta + 1) * RE)
-IC  = beta * IB
-IE  = (beta + 1) * IB
-VCE = VCC - IC * RC - IE * RE
-```
-
-**Approximate** solution, valid only when the divider is stiff (`IB` assumed 0):
-
-```
-VB  = VTH
-VE  = VB - VBE
-IE  = VE / RE
-IC  = IE
-VCE = VCC - IC * RC - IE * RE
-```
-
-The app shows both, their difference in percent, and the stiffness ratio
-`beta * RE / RTH`. The approximation is considered valid when that ratio is at
-least 10.
-
-## Operating regions
-
-The linear model only holds in the forward-active region, so the app clamps the
-result to a physically valid operating point:
-
-| Region | Condition | Result |
-|---|---|---|
-| Cutoff | `VTH <= VBE` | all currents 0, `VCE = VCC` |
-| Saturation | active-model `VCE <= 0.2 V` | `VCE = 0.2 V`; `IC` and `IB` solve `IC*(RC+RE) + IB*RE = VCC - 0.2` and `IC*RE + IB*(RTH+RE) = VTH - VBE`, so `VC - VE` still equals `VCE` |
-| Active | otherwise | exact solution above |
-
-Every reported current is non-negative and `0 <= VCE <= VCC`. The cross-check
-panel is shown only in the active region, where both derivations are valid.
+All three share `VCC`, `RC`, `beta` and `VBE`. The selected mode decides which
+extra resistor fields are shown and validated; an unknown mode is an error, never
+a silent divider.
 
 ## Run it
 
@@ -64,10 +24,117 @@ python -m venv .venv
 .venv\Scripts\python run.py
 ```
 
-Open <http://127.0.0.1:5000>, fill the form, press **Calculate DC Bias**.
+Open <http://127.0.0.1:5000>, pick the circuit, fill the form, press
+**Calculate DC Bias**.
 
-Resistances are entered in kilohms: 47 kOhm is `47`. Results are shown in mA,
-microamps and volts, with 4 significant digits.
+Resistances are entered in kilohms: 1 MΩ is `1000`. Results are shown in V,
+mA and µA with 4 significant digits.
+
+## Engineering model
+
+The model assumes constant `beta` and `VBE` in the forward-active region.
+Only `VBE`, `VCC`, the resistors and `beta` are inputs; the app computes:
+
+```
+IC = beta * IB
+IE = (beta + 1) * IB
+VE = IE * RE                    (0 V for fixed bias)
+VB = VE + VBE
+VC = VCC - IC * RC
+VCE = VC - VE
+```
+
+Each mode supplies its own base current:
+
+| Mode | Base current |
+|---|---|
+| Fixed | `IB = (VCC - VBE) / RB` |
+| Emitter | `IB = (VCC - VBE) / (RB + (beta + 1) * RE)` |
+| Divider | `IB = (VTH - VBE) / (RTH + (beta + 1) * RE)` |
+
+For the divider, the base divider is replaced by its Thevenin equivalent:
+
+```
+VTH = VCC * R2 / (R1 + R2)
+RTH = R1 * R2 / (R1 + R2)
+```
+
+The divider result is the exact solution, which accounts for base current. The
+app also shows the stiff-divider approximation:
+
+```
+VB = VTH
+VE = VB - VBE
+IE = VE / RE
+IC = IE
+VCE = VCC - IC * RC - IE * RE
+```
+
+The comparison panel shows both, their difference in percent, and the stiffness
+ratio `beta * RE / RTH`. The approximation is valid when that ratio is at least
+10.
+
+### Operating regions
+
+The divider path keeps the Lab 2 piecewise handling: cutoff when `VTH <= VBE`,
+saturation when the active-model `VCE <= 0.2 V`, and a clamped, physically valid
+result in both cases.
+
+For Fixed and Emitter bias, the handout asks for a warning rather than a
+cutoff/saturation solution. A valid input whose linear model gives `IB <= 0` or
+`VCE <= 0.2 V` still returns the linear values, flags the result as
+**forward-active model warning**, and explains why.
+
+## Validation
+
+**Hard errors** (HTTP 400, no result, the user's values are kept):
+
+- missing or empty field required by the selected mode
+- non-numeric input, `nan`, `inf`, or intermediate overflow
+- `VCC <= 0`, or `VCC <= 0.2 V`
+- any resistance required by the mode `<= 0`
+- `beta <= 1`
+- `VBE < 0`
+- unknown mode
+
+**Warnings** (result is still shown):
+
+- `VBE` outside 0.5–0.9 V
+- `beta` outside 20–500
+- `VCC` above 30 V
+- divider cutoff, saturation, or operation within 0.5 V of saturation
+- non-stiff divider
+- Fixed/Emitter model outside the forward-active region (`IB <= 0` or
+  `VCE <= 0.2 V`)
+
+## Reference cases
+
+Common values: `VCC = 12 V`, `RC = 2.2 kΩ`, `beta = 100`, `VBE = 0.70 V`.
+Expected values are hand-calculated from the equations above, not copied from
+the app.
+
+| Case | Mode | Extra inputs | Expected IC | Expected VCE |
+|---|---|---|---|---|
+| A1 | Divider | `R1 = 100 kΩ`, `R2 = 22 kΩ`, `RE = 1 kΩ` | 1.2298 mA | 8.0522 V |
+| A2 | Fixed | `RB = 1 MΩ` | 1.1300 mA | 9.5140 V |
+| A3 | Emitter | `RB = 1 MΩ`, `RE = 1 kΩ` | 1.0263 mA | 8.7054 V |
+| A4 | Emitter | `RB = 1 MΩ`, `RE = 2 kΩ` | 0.9401 mA | 8.0328 V |
+| A5 | Fixed | `RB = 0` | hard error | — |
+
+A1 is the same input set the Lab 2 app accepted, and it still gives the same
+result. A4 is the A3 circuit with only `RE` changed; the larger emitter
+resistor lowers `IB`, so `IC` falls.
+
+The full acceptance record, including observed values and browser evidence,
+is in [`docs/validation.md`](docs/validation.md).
+
+## Divider regression cases
+
+| VCC | R1 | R2 | RC | RE | beta | VBE | Expected |
+|---|---|---|---|---|---|---|---|
+| 12 V | 47 k | 10 k | 2.2 k | 1 k | 150 | 0.7 V | active: IC 1.324 mA, VCE 7.755 V, delta IC 6.164 %, stiff |
+| 12 V | 47 k | 2.2 k | 2.2 k | 1 k | 150 | 0.7 V | cutoff: all currents 0, VCE 12 V |
+| 12 V | 47 k | 10 k | 2.2 k | 100 | 150 | 0.7 V | saturation: IC 5.126 mA, IB 107.0 µA, IE 5.233 mA, VCE 0.2 V |
 
 ## Tests
 
@@ -75,46 +142,69 @@ microamps and volts, with 4 significant digits.
 .venv\Scripts\python -m unittest discover -s tests -t . -v
 ```
 
-41 tests cover input validation, the three operating regions, the cross-check,
-and the HTTP layer.
+41 existing tests cover divider validation, the three operating regions,
+the cross-check and the HTTP layer. Per the Lab 03 handout, the new modes are
+checked through the browser acceptance table instead of new `unittest` cases.
 
-## Reference cases
+## Browser acceptance and MCP
 
-| VCC | R1 | R2 | RC | RE | beta | VBE | Expected |
-|---|---|---|---|---|---|---|---|
-| 12 V | 47 k | 10 k | 2.2 k | 1 k | 150 | 0.7 V | active: IC 1.324 mA, VCE 7.755 V, delta IC 6.164 %, stiff |
-| 12 V | 47 k | 2.2 k | 2.2 k | 1 k | 150 | 0.7 V | cutoff: all currents 0, VCE 12 V |
-| 12 V | 47 k | 10 k | 2.2 k | 100 | 150 | 0.7 V | saturation: IC 5.126 mA, IB 107.0 uA, IE 5.233 mA, VCE 0.2 V, VC 0.723 V, VE 0.523 V |
+The project includes `opencode.json` with Playwright MCP (OpenCode V2 layout):
 
-## Validation
+```json
+{
+  "mcp": {
+    "servers": {
+      "playwright": {
+        "type": "local",
+        "command": ["npx", "-y", "@playwright/mcp@latest",
+                    "--browser", "chrome", "--isolated"]
+      }
+    }
+  }
+}
+```
 
-Hard errors (no result is shown): missing or empty field, non-numeric, `nan`
-or `inf` input, `VCC <= 0`, `VCC <= 0.2 V` (`VCE_SAT`), any resistance `<= 0`,
-`beta <= 1`, negative `VBE`, and inputs large enough to overflow the arithmetic.
+MCP is the bridge: OpenCode is the MCP client, Playwright MCP is the server that
+opens the browser, and the browser talks to Flask over ordinary HTTP. Playwright
+is not a Python dependency of the app.
 
-Warnings (result is still shown): `VBE` outside 0.5-0.9 V, `beta` outside
-20-500, `VCC` above 30 V, cutoff, saturation, operation within 0.5 V of
-saturation, and a non-stiff divider.
+The A1–A5 cases were run against the live Flask server with OpenCode Browser
+tools because that is the browser integration available in this environment;
+the method column in `docs/validation.md` records it as `OpenCode Browser`. If
+Playwright MCP is connected, the same steps work with `browser_navigate`,
+`browser_snapshot`, `browser_select_option`, `browser_fill_form` and
+`browser_click`.
 
 ## Layout
 
 ```
 bjt_bias/
   __init__.py      Flask app factory and the `sig` formatting filter
-  engineering.py   pure math: inputs, validation, operating point, cross-check
-  routes.py        GET / (prefilled form) and POST / (analyze); kOhm to ohm
-  templates/       base.html (header, goal bar), index.html (3 panels + SVG)
+  engineering.py   pure math: inputs, per-mode parsing, three analyses,
+                   validation, divider cross-check
+  routes.py        GET / (mode picker) and POST / (dispatch by mode); kΩ to Ω
+  templates/       base.html (header, goal), index.html (panels + SVG)
   static/          style.css
-tests/             engineering and route tests
+tests/             existing engineering and route tests
+docs/
+  validation.md    A1–A5 acceptance record
 run.py             development server on 127.0.0.1:5000
 ```
 
+## AI assistance
+
+The Lab 03 changes (Fixed/Emitter functions, mode dispatch, per-mode form and
+validation, documentation) were drafted with the OpenCode agent. The equations
+and sign conventions were checked against Engineering Electronics and against
+the hand calculations in `docs/validation.md`; the divider path was kept intact
+so its Lab 2 regression tests still pass.
+
 ## สรุปภาษาไทย
 
-เว็บแอป Flask สำหรับคำนวณจุดทำงาน DC ของวงจรไบอัสแบบ voltage divider ของทรานซิสเตอร์ BJT
-แบบ common-emitter รับค่า VCC, R1, R2, RC, RE, beta และ VBE แล้วแสดงกระแสและแรงดัน
-พร้อมหน่วย ตรวจสอบความถูกต้องของข้อมูล แจ้งเตือนเมื่อทรานซิสเตอร์อยู่ในช่วง cutoff หรือ
-saturation และเปรียบเทียบผลระหว่างวิธีคำนวณแบบละเอียด (Thevenin) กับแบบประมาณ
-(stiff divider) ให้เห็นว่าเมื่อใดการประมาณจึงใช้ได้
+เว็บแอป Flask สำหรับคำนวณจุดทำงาน DC ของวงจรไบอัส BJT แบบ common-emitter
+รองรับสามวงจร ได้แก่ voltage-divider bias (ผลเดิมจาก Lab 2), fixed bias และ
+emitter bias แบบแหล่งจ่ายเดียว ผู้ใช้เลือกวงจรได้จากหน้าเว็บ ฟอร์มจะแสดงเฉพาะ
+ช่องที่วงจรนั้นใช้ และตรวจอินพุตตามโหมด ผลลัพธ์แสดง VB, VE, VC, VCE, IB, IC, IE
+พร้อมหน่วยและคำเตือนเมื่อแบบจำลอง forward-active อาจใช้ไม่ได้
 
 รันด้วย `.venv\Scripts\python run.py` แล้วเปิด <http://127.0.0.1:5000>
