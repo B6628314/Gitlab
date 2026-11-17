@@ -67,11 +67,25 @@ result may be presented as this run's result.
 
 | Case | Mode and inputs | Expected before running | Seen in browser | Method | Status | Evidence |
 |---|---|---|---|---|---|---|
-| A1 · existing mode | Divider · R1 100, R2 22, RE 1 | IC 1.2298 mA · VCE 8.0522 V, same as Lab 2 | — | — | — | — |
-| A2 · Fixed | Fixed · RB 1000 (1 MΩ) | IC 1.1300 mA · VCE 9.5140 V; no RE field needed | — | — | — | — |
-| A3 · Emitter | Emitter · RB 1000, RE 1.0 | IC 1.0263 mA · VCE 8.7054 V; RE field present and used | — | — | — | — |
-| A4 · one value changed | Emitter · RB 1000, RE 2.0 | IC 0.9401 mA (lower than A3) · VCE 8.0328 V | — | — | — | — |
-| A5 · invalid input | Fixed · RB 0 | Error asking to correct RB; no result and no crash | — | — | — | — |
+| A1 · existing mode | Divider · R1 100, R2 22, RE 1 | IC 1.2298 mA · VCE 8.0522 V, same as Lab 2 | IC 1.23 mA · VCE 8.052 V (VB 1.942, VE 1.242, VC 9.294) | OpenCode Browser | PASS | Live snapshot; identical to the Lab 2 baseline |
+| A2 · Fixed | Fixed · RB 1000 (1 MΩ) | IC 1.1300 mA · VCE 9.5140 V; no RE field needed | IC 1.13 mA · VCE 9.514 V (VB 0.7, VE 0) | OpenCode Browser | PASS | Live snapshot; form showed no RE field |
+| A3 · Emitter | Emitter · RB 1000, RE 1.0 | IC 1.0263 mA · VCE 8.7054 V; RE field present and used | IC 1.026 mA · VCE 8.705 V (VB 1.737, VE 1.037) | OpenCode Browser | PASS | Live snapshot |
+| A4 · one value changed | Emitter · RB 1000, RE 2.0 | IC 0.9401 mA (lower than A3) · VCE 8.0328 V | IC 0.9401 mA · VCE 8.033 V (lower than A3); only RE changed | OpenCode Browser | PASS | [`evidence/lab03-a4-emitter.png`](evidence/lab03-a4-emitter.png) |
+| A5 · invalid input | Fixed · RB 0 | Error asking to correct RB; no result and no crash | `RB must be greater than zero.`; no result table; RB field kept `0` | OpenCode Browser | PASS | [`evidence/lab03-a5-invalid-rb.png`](evidence/lab03-a5-invalid-rb.png) |
+
+## Method note
+
+`opencode.json` contains the Playwright MCP server entry in the OpenCode V2
+layout. The check was actually executed with the browser integration available
+in this OpenCode session (OpenCode Browser): navigate, read the accessibility
+snapshot, select the mode, fill the real fields, submit and read the fresh
+result. Playwright MCP itself is therefore **NOT RUN** in this session, and the
+table says `OpenCode Browser` rather than claiming Playwright was used.
+
+The Flask server was started with
+`.venv\Scripts\python -c "from bjt_bias import create_app; create_app().run(host='127.0.0.1', port=5000)"`
+and the page was requested at `http://127.0.0.1:5000/`.
+
 
 ## How RE reaches the equation (A4 trace)
 
@@ -91,4 +105,8 @@ and the field name before touching the equations.
 ## Change log
 
 - Initial record created with the independent hand calculations above.
-- Browser observations are added after the live A1–A5 run.
+- A1–A5 run in the live browser on 2026-11-17; all five PASS. A1 still shows
+  the Lab 2 result (IC 1.23 mA, VCE 8.052 V). A4 confirms that changing only
+  RE from 1 kΩ to 2 kΩ lowers IC from 1.026 mA to 0.9401 mA.
+- Screenshots for A4 and A5 saved under `docs/evidence/`.
+
